@@ -1,20 +1,120 @@
-hidden = 300, keep_prob = 0.95, num_layers = 4, lr = 0.05, max_grad_norm = 10.0
-0.28 0
-hidden = 200, keep_prob = 0.9, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
-0.84 0.43
 hidden = 300, keep_prob = 0.95, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
-0.910 0.704
+0.931 0.767
 hidden = 400, keep_prob = 0.95, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
-0.89 0.63
-hidden = 200, keep_prob = 0.95, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
-0.89 0.599
+0.936 0.79
+hidden = 500, keep_prob = 0.95, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
+0.926 0.767
+hidden = 600, keep_prob = 0.95, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
+0.91 0.70
 hidden = 300, keep_prob = 0.95, num_layers = 2, lr = 0.05, max_grad_norm = 10.0
-0.47 0.0
-hidden = 300, keep_prob = 0.9, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
-0.85 0.438 / 0.86 0.46
-hidden = 300, keep_prob = 0.975, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
-0.72 0.18
-hidden = 300, keep_prob = 0.95, num_layers = 1, lr = 0.05, max_grad_norm = 5.0
-0.90 0.64
-hidden = 300, keep_prob = 0.95, num_layers = 1, lr = 0.1, max_grad_norm = 10.0
-0.64 0.067
+0.88 0.68
+
+hidden = 400, keep_prob = 0.9, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
+0.92 0.76
+hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
+0.939 0.812
+hidden = 400, keep_prob = 0.7, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
+0.93 0.80
+hidden = 400, keep_prob = 0.5, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
+0.92 0.74
+
+hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, no pos ner
+0.935 0.79
+
+
+
+5.23:
+hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0
+0.737
+hidden = 400, keep_prob = 0.8, num_layers = 2, lr = 0.05, max_grad_norm = 10.0
+0.756
+
+
+hidden = 200, keep_prob = 0.8, dense_size = 11, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128
+0.797753
+hidden = 200, keep_prob = 0.8, dense_size = 100, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128
+0.7977
+hidden = 200, keep_prob = 0.8, dense_size = 200, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128
+0.797753
+hidden = 200, keep_prob = 0.8, no dense, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128
+<0.3
+
+hidden = 200, keep_prob = 0.8, dense_size = 11, num_layers = 2, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128
+0.801498
+hidden = 200, keep_prob = 0.8, dense_size = 100, num_layers = 2, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+0.801498
+hidden = 200, keep_prob = 0.8, dense_size = 200, num_layers = 2, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+0.794007
+
+assert dense_size = len(tagMap) !!!
+
+hidden = 300, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+0.797753
+hidden = 300, keep_prob = 0.8, num_layers = 2, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+0.801498
+
+hidden = 200, keep_prob = 0.7, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+0.794007
+hidden = 200, keep_prob = 0.6, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+0.779026
+
+hidden = 200, keep_prob = 0.8, num_layers = 3, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+0.797753
+
+cross validation:
+hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 64):
+0.785714, 0.790476, 0.776190, 0.809524, 0.776190
+hidden = 200, keep_prob = 0.8, num_layers = 2, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 64):
+0.733333, 0.823810, 0.804762, 0.771429, 0.771429
+
+relu activation:
+hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+0.760300
+
+sigmoid:
+hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+0.524345
+
+tanh:
+hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+0.790262
+hidden = 200, keep_prob = 0.8, num_layers = 2, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+
+
+add dense (size = hidden, act = relu):
+0.771536
+add dense (size = hidden, act = tanh):
+0.760300
+
+
+hidden = 300, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 64):
+0.767790
+hidden = 300, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 512):
+0.786517
+
+restore dynamic_rnn:
+hidden = 300, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 64):
+0.737828
+0.730337
+hidden = 300, keep_prob = 0.95, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 64):
+0.764045
+hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 64):
+0.681648
+hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 512):
+0.752809
+hidden = 300, keep_prob = 0.95, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 512):
+0.734082
+hidden = 300, keep_prob = 0.95, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
+0.756554
+hidden = 400, keep_prob = 0.95, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
+0.730337
+hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
+0.756554
+
+use stack_rnn
+hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
+0.779026
+
+cross validation:
+hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
+0.747619, 0.752381, 0.776190, 0.700000, 0.800000, 0.755238

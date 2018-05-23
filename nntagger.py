@@ -283,7 +283,7 @@ class Model(object):
 		return maxacc
 
 
-def main(hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+def main(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
 	with open('./data/word_dict.pickle', 'rb') as f:
 		word_dict = pickle.load(f)
 	with open('./data/embeddings.pickle', 'rb') as f:
@@ -293,7 +293,7 @@ def main(hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_nor
 	model = Model(hidden, num_layers, embeddings, keep_prob, lr, max_grad_norm, batch_size)
 	model.train(train_dset, test_dset, max_epoch)
 
-def crossvalid(hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 64):
+def crossvalid(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
 	with open('./data/word_dict.pickle', 'rb') as f:
 		word_dict = pickle.load(f)
 	with open('./data/embeddings.pickle', 'rb') as f:
@@ -320,5 +320,5 @@ def crossvalid(hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_gr
 if __name__ == '__main__':
 	logging.basicConfig(filename='./log.txt', filemode='w', level=logging.DEBUG,
 							format='%(asctime)s %(message)s', datefmt='%m-%d %H:%M')
-	main()
-	# crossvalid()
+	# main()
+	crossvalid()
