@@ -189,25 +189,28 @@ class Model(object):
 			for time_step in range(maxlen):
 				if time_step > 0:
 					tf.get_variable_scope().reuse_variables()
-				cell_output_fw, state_fw = m_cell_fw(inputs[:, time_step, :], state_fw)
-				# cell_output_bw, state_bw = m_cell_bw(inputs[:, time_step, :], state_bw)
-				# cell_output = tf.concat([cell_output_fw, cell_output_bw], axis=1)
-				outputs.append(cell_output_fw)
+				with tf.variable_scope("fw"):
+					cell_output_fw, state_fw = m_cell_fw(inputs[:, time_step, :], state_fw)
+				with tf.variable_scope("bw"):
+					cell_output_bw, state_bw = m_cell_bw(inputs[:, time_step, :], state_bw)
+				cell_output = tf.concat([cell_output_fw, cell_output_bw], axis=1)
+				outputs.append(cell_output)
 		output = tf.concat(outputs, axis=1)
-		output = tf.reshape(output, [-1, self.hidden_size])
+		# output = tf.reshape(output, [-1, self.hidden_size])
 
-		output, state = tf.nn.bidirectional_dynamic_rnn(cell_fw=m_cell_fw, cell_bw=m_cell_bw, inputs=inputs,
-														sequence_length=self.seq_len, scope='bi_lstm', dtype=tf.float32,
-														initial_state_fw=init_state_fw, initial_state_bw=init_state_bw)
-		output = tf.concat([output[0], output[1]], axis=2)
+		# output, state = tf.nn.bidirectional_dynamic_rnn(cell_fw=m_cell_fw, cell_bw=m_cell_bw, inputs=inputs,
+		# 												sequence_length=self.seq_len, scope='bi_lstm', dtype=tf.float32,
+		# 												initial_state_fw=init_state_fw, initial_state_bw=init_state_bw)
+		# output = tf.concat([output[0], output[1]], axis=2)
 		logits = tf.layers.dense(output, len(tagMap))
 
-		self.unary_scores = tf.nn.softmax(logits, dim=2)
+		# self.unary_scores = tf.nn.softmax(logits, dim=2)
+		self.unary_scores = logits
 
 		log_likelihood, self.transition_params = \
-			crf.crf_log_likelihood(logits, self.y_inputs, self.seq_len)
+			crf.crf_log_likelihood(self.unary_scores, self.y_inputs, self.seq_len)
 		viterbi_sequence, viterbi_score = \
-			crf.viterbi_decode(self.unary_scores, self.transition_params)
+			crf.crf_decode(self.unary_scores, self.transition_params, self.seq_len)
 
 		self.cost = tf.reduce_mean(-log_likelihood)
 
@@ -240,7 +243,7 @@ class Model(object):
 		test_pos = [instance['pos'] for instance in test_dset]
 		test_ner = [instance['ner'] for instance in test_dset]
 
-		tf_unary_scores = sess.run([self.unary_scores],
+		tf_unary_scores = sess.run(self.unary_scores,
 							feed_dict={self.X_inputs: test_sentences,
 									   self.seq_len: test_seq_len,
 									   self.pos: test_pos,
@@ -251,8 +254,9 @@ class Model(object):
 		test_tags = [instance['tag'] for instance in test_dset]
 
 		for i in range(len(test_tags)):
+			unary_score = tf_unary_scores[i][:test_seq_len[i]]
 			viterbi_sequence, viterbi_score = \
-				crf.viterbi_decode(tf_unary_scores, transition_params)
+				crf.viterbi_decode(unary_score, transition_params)
 			tags = test_tags[i]
 			pred_true = True
 			for j in range(test_seq_len[i]):
@@ -320,8 +324,9 @@ def crossvalid(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_gra
 		logging.info('Fold %d:' % i)
 		test_dset = dset[numfold * i: numfold * (i + 1)]
 		train_dset = dset[:numfold * i] + dset[numfold * (i + 1):]
-		model = Model(hidden, num_layers, embeddings, keep_prob, lr, max_grad_norm)
-		model.train(train_dset, test_dset, max_epoch)
+		with tf.variable_scope("Fold_{}".format(i)):
+			model = Model(hidden, num_layers, embeddings, keep_prob, lr, max_grad_norm)
+			model.train(train_dset, test_dset, max_epoch)
 		logging.info('......')
 		logging.info('\n\n')
 
@@ -329,5 +334,5 @@ def crossvalid(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_gra
 if __name__ == '__main__':
 	logging.basicConfig(filename='./log.txt', filemode='w', level=logging.DEBUG,
 							format='%(asctime)s %(message)s', datefmt='%m-%d %H:%M')
-	# main()
-	crossvalid()
+	main()
+	# crossvalid()
