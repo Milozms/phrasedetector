@@ -97,40 +97,8 @@ def readfile_pos_ner(filename, word_dict):
 			instance = {}
 	return dset
 
-
-def stacked_lstm(inputs, hidden, num_layers, seq_len, batch, keep_prob=1.0, concat_layers=True, scope="StackedLSTM"):
-	with tf.variable_scope(scope):
-		outputs = [inputs]
-		for layer in range(num_layers):
-			with tf.variable_scope("Layer_{}".format(layer)):
-				with tf.variable_scope("fw"):
-					cell_fw = tf.nn.rnn_cell.BasicLSTMCell(num_units=hidden)
-					cell_fw = tf.nn.rnn_cell.DropoutWrapper(cell=cell_fw, input_keep_prob=keep_prob,
-															output_keep_prob=keep_prob)
-					init_fw = cell_fw.zero_state(batch, dtype=tf.float32)
-					out_fw, state_fw = tf.nn.dynamic_rnn(
-						cell_fw, inputs, sequence_length=seq_len, initial_state=init_fw, dtype=tf.float32)
-				with tf.variable_scope("bw"):
-					inputs_bw = tf.reverse_sequence(
-						outputs[-1], seq_lengths=seq_len, seq_dim=1, batch_dim=0)
-					cell_bw = tf.nn.rnn_cell.BasicLSTMCell(num_units=hidden)
-					cell_bw = tf.nn.rnn_cell.DropoutWrapper(cell=cell_bw, input_keep_prob=keep_prob,
-															output_keep_prob=keep_prob)
-					init_bw = cell_bw.zero_state(batch, dtype=tf.float32)
-					out_bw, state_bw = tf.nn.dynamic_rnn(
-						cell_bw, inputs_bw, sequence_length=seq_len, initial_state=init_bw, dtype=tf.float32)
-					out_bw = tf.reverse_sequence(
-						out_bw, seq_lengths=seq_len, seq_dim=1, batch_dim=0)
-				outputs.append(tf.concat([out_fw, out_bw], axis=2))
-		if concat_layers:
-			res = tf.concat(outputs[1:], axis=2)
-		else:
-			res = outputs[-1]
-		state = tf.concat([state_fw, state_bw], axis=1)
-		return res, state
-
 class Model(object):
-	def __init__(self, hidden, num_layers, embedding, keep_prob, lr = 0.05, max_grad_norm = 10.0):
+	def __init__(self, hidden, num_layers, embedding, keep_prob, lr = 0.05, max_grad_norm = 10.0, batch_size = 64):
 		self.hidden_size = hidden
 		self.num_layers = num_layers
 		self.embedding = embedding
@@ -139,6 +107,7 @@ class Model(object):
 		self.posdim = 100
 		self.nerdim = 100
 		self.max_grad_norm = max_grad_norm
+		self.batch_size = batch_size
 		self.build_model()
 
 	def build_model(self):
@@ -167,59 +136,60 @@ class Model(object):
 			ner = tf.nn.embedding_lookup(ner_embedding, self.ner)
 			inputs = tf.concat([word_emb, pos, ner], axis=2)
 
-		m_cell_fw = []
-		m_cell_bw = []
-		for i in range(self.num_layers):
-			cell_fw = tf.nn.rnn_cell.BasicLSTMCell(num_units=self.hidden_size)
-			cell_fw = tf.nn.rnn_cell.DropoutWrapper(cell=cell_fw, input_keep_prob=self.keep_prob, output_keep_prob=self.keep_prob)
-			cell_bw = tf.nn.rnn_cell.BasicLSTMCell(num_units=self.hidden_size)
-			cell_bw = tf.nn.rnn_cell.DropoutWrapper(cell=cell_bw, input_keep_prob=self.keep_prob, output_keep_prob=self.keep_prob)
-			m_cell_fw.append(cell_fw)
-			m_cell_bw.append(cell_bw)
 
 		batch = tf.shape(self.X_inputs)[0]
-		m_cell_fw = tf.nn.rnn_cell.MultiRNNCell(m_cell_fw, state_is_tuple=True)
-		m_cell_bw = tf.nn.rnn_cell.MultiRNNCell(m_cell_bw, state_is_tuple=True)
-		init_state_fw = m_cell_fw.zero_state(batch, dtype=tf.float32)
-		init_state_bw = m_cell_bw.zero_state(batch, dtype=tf.float32)
-		state_fw = init_state_fw
-		state_bw = init_state_bw
-		outputs = []
+		hidden = self.hidden_size
+		keep_prob = self.keep_prob
+		seq_len = self.seq_len
+
 		with tf.variable_scope('biLSTM'):
-			for time_step in range(maxlen):
-				if time_step > 0:
-					tf.get_variable_scope().reuse_variables()
-				with tf.variable_scope("fw"):
-					cell_output_fw, state_fw = m_cell_fw(inputs[:, time_step, :], state_fw)
-				with tf.variable_scope("bw"):
-					cell_output_bw, state_bw = m_cell_bw(inputs[:, time_step, :], state_bw)
-				cell_output = tf.concat([cell_output_fw, cell_output_bw], axis=1)
-				outputs.append(cell_output)
-		output = tf.concat(outputs, axis=1)
-		# output = tf.reshape(output, [-1, self.hidden_size])
+			outputs = [inputs]
+			for layer in range(self.num_layers):
+				with tf.variable_scope("Layer_{}".format(layer)):
+					inputs_fw = outputs[-1]
+					with tf.variable_scope("fw"):
+						cell_fw = tf.nn.rnn_cell.BasicLSTMCell(num_units=hidden)
+						cell_fw = tf.nn.rnn_cell.DropoutWrapper(cell=cell_fw, input_keep_prob=keep_prob,
+																output_keep_prob=keep_prob)
+						init_fw = cell_fw.zero_state(batch, dtype=tf.float32)
+						out_fw, state_fw = tf.nn.dynamic_rnn(
+							cell_fw, inputs_fw, sequence_length=seq_len, initial_state=init_fw, dtype=tf.float32)
+					with tf.variable_scope("bw"):
+						inputs_bw = tf.reverse_sequence(
+							inputs_fw, seq_lengths=seq_len, seq_dim=1, batch_dim=0)
+						cell_bw = tf.nn.rnn_cell.BasicLSTMCell(num_units=hidden)
+						cell_bw = tf.nn.rnn_cell.DropoutWrapper(cell=cell_bw, input_keep_prob=keep_prob,
+																output_keep_prob=keep_prob)
+						init_bw = cell_bw.zero_state(batch, dtype=tf.float32)
+						out_bw, state_bw = tf.nn.dynamic_rnn(
+							cell_bw, inputs_bw, sequence_length=seq_len, initial_state=init_bw, dtype=tf.float32)
+						out_bw = tf.reverse_sequence(
+							out_bw, seq_lengths=seq_len, seq_dim=1, batch_dim=0)
+					outputs.append(tf.concat([out_fw, out_bw], axis=2))
+			output = tf.concat(outputs[1:], axis=2)
 
 		# output, state = tf.nn.bidirectional_dynamic_rnn(cell_fw=m_cell_fw, cell_bw=m_cell_bw, inputs=inputs,
 		# 												sequence_length=self.seq_len, scope='bi_lstm', dtype=tf.float32,
 		# 												initial_state_fw=init_state_fw, initial_state_bw=init_state_bw)
 		# output = tf.concat([output[0], output[1]], axis=2)
-		logits = tf.layers.dense(output, len(tagMap))
+		output = tf.layers.dense(output, hidden, activation=tf.nn.tanh)
+		output = tf.layers.dense(output, len(tagMap))
+		self.unary_scores = output
 
-		# self.unary_scores = tf.nn.softmax(logits, dim=2)
-		self.unary_scores = logits
-
-		log_likelihood, self.transition_params = \
-			crf.crf_log_likelihood(self.unary_scores, self.y_inputs, self.seq_len)
-		viterbi_sequence, viterbi_score = \
-			crf.crf_decode(self.unary_scores, self.transition_params, self.seq_len)
+		with tf.variable_scope("crf"):
+			log_likelihood, transition_params = \
+				crf.crf_log_likelihood(self.unary_scores, self.y_inputs, self.seq_len)
+			viterbi_sequence, viterbi_score = \
+				crf.crf_decode(self.unary_scores, transition_params, self.seq_len)
+			tf.get_variable_scope().reuse_variables()
+			self.transition_params = tf.get_variable("transitions")
 
 		self.cost = tf.reduce_mean(-log_likelihood)
 
 
 		# [batch, time_step]
 		seq_mask = tf.sequence_mask(self.seq_len, maxlen, tf.float32)
-		# self.cost = tf.reduce_mean(seq_mask * loss)
 
-		# self.y_ans = tf.cast(tf.argmax(logits, 2), tf.int32)
 		self.y_ans = viterbi_sequence
 		correct_prediction = tf.equal(self.y_ans, self.y_inputs)  # [batch, time_step]
 		correct_cnt = tf.reduce_sum(seq_mask * tf.cast(correct_prediction, tf.float32), axis=1)
@@ -237,13 +207,13 @@ class Model(object):
 											 global_step=tf.contrib.framework.get_or_create_global_step())
 		return
 
-	def test(self, test_dset, transition_params):
+	def test(self, test_dset):
 		test_sentences = [instance['words'] for instance in test_dset]
 		test_seq_len = [instance['len'] for instance in test_dset]
 		test_pos = [instance['pos'] for instance in test_dset]
 		test_ner = [instance['ner'] for instance in test_dset]
 
-		tf_unary_scores = sess.run(self.unary_scores,
+		tf_unary_scores, transition_params = sess.run([self.unary_scores, self.transition_params],
 							feed_dict={self.X_inputs: test_sentences,
 									   self.seq_len: test_seq_len,
 									   self.pos: test_pos,
@@ -273,13 +243,10 @@ class Model(object):
 		return sent_acc
 
 	def train(self, train_dset, test_dset, max_epoch):
-		# train_sentences, train_tags, train_seq_len, train_pos, train_ner = train_dset
-		# test_sentences, test_tags, test_seq_len, test_pos, test_ner = test_dset
-		train_sentences = [instance['words'] for instance in train_dset]
-		train_tags = [instance['tag'] for instance in train_dset]
-		train_seq_len = [instance['len'] for instance in train_dset]
-		train_pos = [instance['pos'] for instance in train_dset]
-		train_ner = [instance['ner'] for instance in train_dset]
+		batch_size = self.batch_size
+		train_datasize = len(train_dset)
+		num_batch = int(math.ceil(train_datasize/batch_size))
+
 
 
 		init_op = tf.initialize_all_variables()
@@ -287,31 +254,47 @@ class Model(object):
 		maxacc = 0
 		saver = tf.train.Saver()
 		for epoch in tqdm(range(max_epoch)):
-			cost_val, train_op_val, transition_params = sess.run([self.cost, self.train_op, self.transition_params],
+			cost = 0.0
+			for nbatch in range(num_batch):
+				if nbatch == num_batch - 1:
+					batch_dset = train_dset[nbatch*batch_size:]
+				else:
+					batch_dset = train_dset[nbatch*batch_size: (nbatch+1)*batch_size]
+				train_sentences = [instance['words'] for instance in batch_dset]
+				train_tags = [instance['tag'] for instance in batch_dset]
+				train_seq_len = [instance['len'] for instance in batch_dset]
+				train_pos = [instance['pos'] for instance in batch_dset]
+				train_ner = [instance['ner'] for instance in batch_dset]
+				cost_val, train_op_val = sess.run([self.cost, self.train_op],
 															feed_dict={self.X_inputs: train_sentences,
 																	   self.y_inputs: train_tags,
 																	   self.seq_len: train_seq_len,
 																	   self.pos: train_pos,
 																	   self.ner: train_ner})
-			logging.info('epoch = %d, loss = %f' % (epoch, cost_val))
-			sent_acc = self.test(test_dset, transition_params)
+				cost += cost_val*len(batch_dset)
+			cost /= len(train_dset)
+			logging.info('Epoch = %d, loss = %f' % (epoch, cost))
+			sent_acc = self.test(test_dset)
 			if (sent_acc > maxacc):
 				# saver.save(sess, './model/model0.ckpt')
 				maxacc = sent_acc
+			np.random.shuffle(train_dset)
 		logging.info('max acc: %f' % maxacc)
+		print('max acc: %f' % maxacc)
+		return maxacc
 
 
-def main(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100):
+def main(hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
 	with open('./data/word_dict.pickle', 'rb') as f:
 		word_dict = pickle.load(f)
 	with open('./data/embeddings.pickle', 'rb') as f:
 		embeddings = pickle.load(f)
 	train_dset = readfile_pos_ner('./data/train.phraselabel.nn.p', word_dict)
 	test_dset = readfile_pos_ner('./data/test.phraselabel.nn.p', word_dict)
-	model = Model(hidden, num_layers, embeddings, keep_prob, lr, max_grad_norm)
-	model.train(train_dset, test_dset, 100)
+	model = Model(hidden, num_layers, embeddings, keep_prob, lr, max_grad_norm, batch_size)
+	model.train(train_dset, test_dset, max_epoch)
 
-def crossvalid(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100):
+def crossvalid(hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 64):
 	with open('./data/word_dict.pickle', 'rb') as f:
 		word_dict = pickle.load(f)
 	with open('./data/embeddings.pickle', 'rb') as f:
@@ -320,15 +303,19 @@ def crossvalid(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_gra
 		   + readfile_pos_ner('./data/test.phraselabel.nn.p', word_dict)
 	np.random.shuffle(dset)
 	numfold = math.floor(len(dset) / 5)
+	acc = 0.0
 	for i in range(0, 5):
 		logging.info('Fold %d:' % i)
 		test_dset = dset[numfold * i: numfold * (i + 1)]
 		train_dset = dset[:numfold * i] + dset[numfold * (i + 1):]
 		with tf.variable_scope("Fold_{}".format(i)):
-			model = Model(hidden, num_layers, embeddings, keep_prob, lr, max_grad_norm)
-			model.train(train_dset, test_dset, max_epoch)
+			model = Model(hidden, num_layers, embeddings, keep_prob, lr, max_grad_norm, batch_size)
+			fold_acc = model.train(train_dset, test_dset, max_epoch)
+			acc += fold_acc
 		logging.info('......')
 		logging.info('\n\n')
+	acc /= 5
+	print('Average accuracy: %f' % acc)
 
 
 if __name__ == '__main__':
