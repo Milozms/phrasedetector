@@ -172,7 +172,6 @@ class Model(object):
 		# 												sequence_length=self.seq_len, scope='bi_lstm', dtype=tf.float32,
 		# 												initial_state_fw=init_state_fw, initial_state_bw=init_state_bw)
 		# output = tf.concat([output[0], output[1]], axis=2)
-		output = tf.layers.dense(output, hidden, activation=tf.nn.tanh)
 		output = tf.layers.dense(output, len(tagMap))
 		self.unary_scores = output
 
@@ -284,7 +283,7 @@ class Model(object):
 		return maxacc
 
 
-def main(hidden = 200, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 128):
+def main(hidden = 300, keep_prob = 0.8, num_layers = 1, lr = 0.05, max_grad_norm = 10.0, max_epoch = 100, batch_size = 64):
 	with open('./data/word_dict.pickle', 'rb') as f:
 		word_dict = pickle.load(f)
 	with open('./data/embeddings.pickle', 'rb') as f:
