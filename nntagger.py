@@ -172,7 +172,6 @@ class Model(object):
 		# 												sequence_length=self.seq_len, scope='bi_lstm', dtype=tf.float32,
 		# 												initial_state_fw=init_state_fw, initial_state_bw=init_state_bw)
 		# output = tf.concat([output[0], output[1]], axis=2)
-		output = tf.layers.dense(output, hidden, activation=tf.nn.tanh)
 		output = tf.layers.dense(output, len(tagMap))
 		self.unary_scores = output
 
