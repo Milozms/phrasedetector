@@ -202,16 +202,16 @@ class Model(object):
 		output = tf.concat([output[0], output[1]], axis=2)
 		logits = tf.layers.dense(output, len(tagMap))
 
-		logits = tf.nn.softmax(logits, dim=2)
+		self.unary_scores = tf.nn.softmax(logits, dim=2)
 
 		log_likelihood, self.transition_params = \
 			crf.crf_log_likelihood(logits, self.y_inputs, self.seq_len)
 		viterbi_sequence, viterbi_score = \
-			crf.crf_decode(logits, self.transition_params, self.seq_len)
+			crf.viterbi_decode(self.unary_scores, self.transition_params)
+
 		self.cost = tf.reduce_mean(-log_likelihood)
 
 
-		# loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y_inputs, logits=logits)
 		# [batch, time_step]
 		seq_mask = tf.sequence_mask(self.seq_len, maxlen, tf.float32)
 		# self.cost = tf.reduce_mean(seq_mask * loss)
@@ -234,13 +234,13 @@ class Model(object):
 											 global_step=tf.contrib.framework.get_or_create_global_step())
 		return
 
-	def valid(self, test_dset):
+	def test(self, test_dset, transition_params):
 		test_sentences = [instance['words'] for instance in test_dset]
 		test_seq_len = [instance['len'] for instance in test_dset]
 		test_pos = [instance['pos'] for instance in test_dset]
 		test_ner = [instance['ner'] for instance in test_dset]
 
-		ans = sess.run([self.y_ans],
+		tf_unary_scores = sess.run([self.unary_scores],
 							feed_dict={self.X_inputs: test_sentences,
 									   self.seq_len: test_seq_len,
 									   self.pos: test_pos,
@@ -251,11 +251,13 @@ class Model(object):
 		test_tags = [instance['tag'] for instance in test_dset]
 
 		for i in range(len(test_tags)):
+			viterbi_sequence, viterbi_score = \
+				crf.viterbi_decode(tf_unary_scores, transition_params)
 			tags = test_tags[i]
 			pred_true = True
 			for j in range(test_seq_len[i]):
 				word_count += 1.0
-				if ans[i][j] != tags[j]:
+				if viterbi_sequence[j] != tags[j]:
 					pred_true = False
 				else:
 					word_acc_count += 1.0
@@ -281,14 +283,14 @@ class Model(object):
 		maxacc = 0
 		saver = tf.train.Saver()
 		for epoch in tqdm(range(max_epoch)):
-			cost_val, train_op_val = sess.run([self.cost, self.train_op],
+			cost_val, train_op_val, transition_params = sess.run([self.cost, self.train_op, self.transition_params],
 															feed_dict={self.X_inputs: train_sentences,
 																	   self.y_inputs: train_tags,
 																	   self.seq_len: train_seq_len,
 																	   self.pos: train_pos,
 																	   self.ner: train_ner})
 			logging.info('epoch = %d, loss = %f' % (epoch, cost_val))
-			sent_acc = self.valid(test_dset)
+			sent_acc = self.test(test_dset, transition_params)
 			if (sent_acc > maxacc):
 				# saver.save(sess, './model/model0.ckpt')
 				maxacc = sent_acc
