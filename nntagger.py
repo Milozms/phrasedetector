@@ -130,10 +130,10 @@ class Model(object):
 											trainable=True,
 											dtype=tf.float32,
 											initializer=tf.random_normal_initializer())
-			# pos = tf.one_hot(self.pos, len(posSet), axis=-1, dtype=tf.float32)
-			# ner = tf.one_hot(self.ner, len(nerSet), axis=-1, dtype=tf.float32)
-			pos = tf.nn.embedding_lookup(pos_embedding, self.pos)
-			ner = tf.nn.embedding_lookup(ner_embedding, self.ner)
+			pos = tf.one_hot(self.pos, len(posSet), axis=-1, dtype=tf.float32)
+			ner = tf.one_hot(self.ner, len(nerSet), axis=-1, dtype=tf.float32)
+			# pos = tf.nn.embedding_lookup(pos_embedding, self.pos)
+			# ner = tf.nn.embedding_lookup(ner_embedding, self.ner)
 			inputs = tf.concat([word_emb, pos, ner], axis=2)
 
 
@@ -275,7 +275,7 @@ class Model(object):
 			logging.info('Epoch = %d, loss = %f' % (epoch, cost))
 			sent_acc = self.test(test_dset)
 			if (sent_acc > maxacc):
-				# saver.save(sess, './model/model0.ckpt')
+				saver.save(sess, './model/model0.ckpt')
 				maxacc = sent_acc
 			np.random.shuffle(train_dset)
 		logging.info('max acc: %f' % maxacc)
@@ -283,7 +283,7 @@ class Model(object):
 		return maxacc
 
 
-def main(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
+def main(hidden = 600, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
 	with open('./data/word_dict.pickle', 'rb') as f:
 		word_dict = pickle.load(f)
 	with open('./data/embeddings.pickle', 'rb') as f:
@@ -293,7 +293,7 @@ def main(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_nor
 	model = Model(hidden, num_layers, embeddings, keep_prob, lr, max_grad_norm, batch_size)
 	model.train(train_dset, test_dset, max_epoch)
 
-def crossvalid(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
+def crossvalid(hidden = 600, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_grad_norm = 10.0, max_epoch = 100, batch_size = 2048):
 	with open('./data/word_dict.pickle', 'rb') as f:
 		word_dict = pickle.load(f)
 	with open('./data/embeddings.pickle', 'rb') as f:
@@ -320,5 +320,5 @@ def crossvalid(hidden = 400, keep_prob = 0.8, num_layers = 1, lr = 0.025, max_gr
 if __name__ == '__main__':
 	logging.basicConfig(filename='./log.txt', filemode='w', level=logging.DEBUG,
 							format='%(asctime)s %(message)s', datefmt='%m-%d %H:%M')
-	# main()
-	crossvalid()
+	main()
+	# crossvalid()
